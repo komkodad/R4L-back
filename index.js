@@ -1,29 +1,33 @@
-'use strict';
+'use strict'
 
-let koa      = require('koa');
-
-let config   = require('./config');
-let bodyParser = require('koa-bodyparser');
-
+let koa         = require('koa')
+let cors        = require("koa-cors")
+let config      = require('./config')
+let bodyParser  = require('koa-bodyparser')
+let services    = require('./services')
+let co          = require('co')
 
 // koa app
-let app = koa();
+let app = koa()
 
-app.use(bodyParser());
+app.use(cors())
+app.use(bodyParser())
 
-//inject postgres client as middleware
-app.use(function *(next) {
-  let ctx = this;
-  let start = new Date().valueOf()
-  ctx.body = "start: " + start + " "
-  yield next;
-  ctx.body += " delay: " + (new Date().valueOf() - start) + " "
-});
+co.wrap(function* () {
+  try {
+    //inject postgres client as middleware
+    yield services.init()
+    app.use(function *(next) {
+      let ctx = this
+      yield next
+    })
 
-let userRoutes = require('./routes/user');
-
-app.use(userRoutes);
-
-let port = process.env.port || config.port || 8282;
-console.log("App is listenning on port: " + port);
-app.listen(port);
+    let userRoutes = require('./routes/user')
+    app.use(userRoutes)
+    let port = config.port || process.env.port || 8282
+    app.listen(port)
+    console.log("App is listenning on port: " + port)
+  } catch (e) {
+    console.log(e)
+  }
+})()
