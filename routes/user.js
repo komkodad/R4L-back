@@ -4,15 +4,17 @@ let router    = require('koa-router')()
 let db        = require("../shared/db.js")
 let services  = require("../services.js")
 
-
 router
   .get("/ping", function* () {
     let ctx = this
+    var n = ctx.session.views || 0
+    ctx.session.views = ++n
     var date = new Date()
     ctx.body = {
       "message" : "pong!",
       "time" : date.valueOf(),
-      "date" : date
+      "date" : date,
+      "views" : n
     }
   })
   .get('/event/:id', function *(){
@@ -25,29 +27,20 @@ router
     let salt = yield services.generateSalt();
     let body = ctx.request.body;
 
-    try {
-      var result = yield services.createUser(body.user, body.password, salt);
-    } catch (e) {
-      result = {
-        "user_id" : null,
-        "success" : false,
-        "message" : e.detail
-      };
-      ctx.status = 422;
-    }
+    var result = yield services.createUser(body.username, body.password, salt);
     ctx.body = result;
   })
   .post("/user/login", function* () {
     let ctx = this;
     let body = ctx.request.body;
-    var result = yield services.authenticateUser(body.user, body.password);
+    var result = yield services.authenticateUser(body.username, body.password);
     ctx.body = result;
   })
   .post('/event/:eventId/polygon/:polygonId', function* () { //set polygon color
     let ctx = this;
     let body = ctx.request.body;
     let params = ctx.params;
-    let result = yield services.setPolygonColor(body.username, body.color, params.eventId, params.polygonId);
+    let result = yield services.setPolygonColor(body.username, body.status, params.eventId, params.polygonId);
     ctx.body = result;
     // let queryString = 'INSERT INTO POLYGON (id,coordinates) VALUES (' + body.id + ',\'' + body.coordinates + '\')';
     // let result = yield db.query(queryString)

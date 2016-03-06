@@ -6,12 +6,18 @@ let config      = require('./config')
 let bodyParser  = require('koa-bodyparser')
 let services    = require('./services')
 let co          = require('co')
+let session     = require("koa-session")
 
 // koa app
 let app = koa()
 
+app.keys = ['dendrobium']
+app.use(session(app))
+
 app.use(cors())
-app.use(bodyParser())
+app.use(bodyParser({
+  "jsonLimit" : "5mb"
+}))
 
 co.wrap(function* () {
   try {
